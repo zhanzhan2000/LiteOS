@@ -73,13 +73,69 @@
 #include "mbedtls/error.h"
 #include "mbedtls/timing.h"
 
-mbedtls_ssl_context* dtls_ssl_new_with_psk(char* psk, unsigned psk_len, char* psk_identity);
+typedef enum
+{
+    VERIFY_WITH_PSK = 0,
+    VERIFY_WITH_CERT,
+}verify_type_e;
 
-int dtls_shakehand(mbedtls_ssl_context* ssl, const char* host, const char* port);
+typedef struct
+{
+    union
+    {
+        struct
+        {
+            const char *host;
+            const char *port;
+        }c;
+        struct
+        {
+            uint32_t timeout;
+            const char *local_port;
+        }s;
+    }u;
+    int client_or_server;
+    int udp_or_tcp;
+    verify_type_e psk_or_cert;
+    void (*step_notify)(void *param);
+    void (*finish_notify)(void *param);
+    void *param;
+}dtls_shakehand_info_s;
+
+typedef struct
+{
+    union
+    {
+        struct
+        {
+            const unsigned char *psk;
+            uint32_t psk_len;
+            const unsigned char *psk_identity;
+        }p;
+        struct
+        {
+            const unsigned char *ca_cert;
+            uint32_t cert_len;
+        }c;
+    }v;
+    verify_type_e psk_or_cert;
+    int udp_or_tcp;
+}dtls_establish_info_s;
+
+void dtls_int(void);
+
+mbedtls_ssl_context *dtls_ssl_new(dtls_establish_info_s *info, char plat_type);
+
+int dtls_shakehand(mbedtls_ssl_context *ssl, const dtls_shakehand_info_s *info);
 
 void dtls_ssl_destroy(mbedtls_ssl_context* ssl);
 
 int dtls_write(mbedtls_ssl_context* ssl, const unsigned char* buf, size_t len);
 
 int dtls_read(mbedtls_ssl_context* ssl, unsigned char* buf, size_t len, uint32_t timeout);
+
+int dtls_accept( mbedtls_net_context *bind_ctx,
+                            mbedtls_net_context *client_ctx,
+                            void *client_ip, size_t buf_size, size_t *ip_len );
+
 
