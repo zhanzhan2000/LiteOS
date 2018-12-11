@@ -257,6 +257,7 @@ static int fatfs_op_open (struct file *file, const char *path_in_mp, int flags)
 {
     FRESULT res;
     FIL     *fp;
+    FILINFO info = {0};
 
     fp = (FIL *) malloc (sizeof(FIL));
     if (fp == NULL)
@@ -264,6 +265,16 @@ static int fatfs_op_open (struct file *file, const char *path_in_mp, int flags)
         PRINT_ERR ("fail to malloc memory in FATFS, <malloc.c> is needed,"
                    "make sure it is added\n");
         return -EINVAL;
+    }
+
+    if (!(flags & O_CREAT) && (flags & O_TRUNC))
+    {
+        res = f_stat(path_in_mp, &info);
+        if(res != FR_OK)
+        {
+            free(fp);
+            return res;
+        }
     }
 
     res = f_open (fp, path_in_mp, fatfs_flags_get (flags));
@@ -356,7 +367,13 @@ static off_t fatfs_op_lseek (struct file *file, off_t off, int whence)
 
     FRESULT res = f_lseek(fp, off);
     if (res == FR_OK)
-        return off;
+    {
+    	if(off < 0)
+    	{
+    	    ret_to_errno(FR_INVALID_PARAMETER);
+    	}
+    	return off;
+    }
     else
         return ret_to_errno(res);
 }
@@ -450,7 +467,7 @@ static int fatfs_op_readdir (struct dir *dir, struct dirent *dent)
         return ret_to_errno(res);
     }
 
-    len = MIN(sizeof(e.fname), LOS_MAX_FILE_NAME_LEN) - 1;
+    len = MIN(sizeof(e.fname), LOS_MAX_DIR_NAME_LEN+1) - 1;
     strncpy ((char *)dent->name, (const char *) e.fname, len);
     dent->name [len] = '\0';
     dent->size = e.fsize;
