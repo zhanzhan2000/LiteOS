@@ -49,7 +49,7 @@ static at_config at_user_conf;
 void at_set_config(at_config *config);
 at_config *at_get_config(void);
 
-void at_init(at_config *config);
+int32_t at_init(at_config *config);
 //int32_t at_read(int32_t id, int8_t * buf, uint32_t len, int32_t timeout);
 int32_t at_write(int8_t *cmd, int8_t *suffix, int8_t *buf, int32_t len);
 int32_t at_get_unuse_linkid(void);
@@ -676,9 +676,9 @@ int32_t at_struct_init(at_task *at)
 
     //        atiny_free(at->linkid);
 malloc_linkid_failed:
-    at_free(at->userdata);
-malloc_saveddata_buf:
     at_free(at->saveddata);
+malloc_saveddata_buf:
+    at_free(at->userdata);
 malloc_userdata_buf:
     at_free(at->cmdresp);
 malloc_resp_buf:
@@ -800,24 +800,24 @@ at_config *at_get_config(void)
 }
 
 
-void at_init(at_config *config)
+int32_t at_init(at_config *config)
 {
 
     if(NULL == config)
     {
         AT_LOG("Config is NULL, failed!!\n");
-        return;
+        return AT_FAILED;
     }
-    
+
     memcpy(&at_user_conf,config,sizeof(at_config));
-    
+
     AT_LOG_DEBUG("Config %s(buffer total is %lu)......\n", at_user_conf.name, at_user_conf.user_buf_len);
 
     //LOS_TaskDelay(200);
     if (AT_OK != at_struct_init(&at))
     {
         AT_LOG("prepare AT struct failed!");
-        return;
+        return AT_FAILED;
     }
     at_init_oob();
 
@@ -825,17 +825,18 @@ void at_init(at_config *config)
     {
         AT_LOG("at_usart_init failed!");
         (void)at_struct_deinit(&at);
-        return;
+        return AT_FAILED;
     }
     if(LOS_OK != create_at_recv_task())
     {
         AT_LOG("create_at_recv_task failed!");
         at_usart_deinit();
         (void)at_struct_deinit(&at);
-        return;
+        return AT_FAILED;
     }
 
     AT_LOG("Config complete!!\n");
+    return AT_OK;
 }
 
 
