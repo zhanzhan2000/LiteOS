@@ -477,6 +477,17 @@ ifeq ($(WITH_MQTT), yes)
 C_DEFS += -DWITH_MQTT
 endif
 
+ifeq ($(WITH_IPV4), no)
+C_DEFS += -DLWIP_IPV4=0
+else
+C_DEFS += -DLWIP_IPV4=1
+endif
+
+ifeq ($(WITH_IPV6), yes)
+C_DEFS += -DLWIP_IPV6=1
+else
+C_DEFS += -DLWIP_IPV6=0
+endif
 
 # AS includes
 AS_INCLUDES =
@@ -514,6 +525,10 @@ CMSIS_INC = \
 		-I $(TOP_DIR)/arch/arm/arm-m/include \
         -I $(TOP_DIR)/arch/arm/common/cmsis
         C_INCLUDES += $(CMSIS_INC)
+
+LITEOS_CMSIS = \
+        -I $(TOP_DIR)/osdepends/liteos/cmsis
+        C_INCLUDES += $(LITEOS_CMSIS)
 		
 ifeq ($(USE_BOOTLOADER), no)	
 OS_CONFIG_INC = \
